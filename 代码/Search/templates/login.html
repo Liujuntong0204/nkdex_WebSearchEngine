@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NKDEX - 登录</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>NKDEX</h1>
+        <h2>用户登录</h2>
+        <div class="button-group">
+            <button onclick="location.href='{{ url_for('site_search') }}'">站内查询</button>
+            <button onclick="location.href='{{ url_for('file_search') }}'">文档查询</button>
+            <button onclick="location.href='{{ url_for('phrase_search') }}'">短语查询</button>
+            <button onclick="location.href='{{ url_for('wildcard_search') }}'">通配查询</button>
+        </div>
+        <form id="login-form" method="POST" onsubmit="event.preventDefault(); loginUser();">
+            <div class="form-group">
+                <label for="username">用户名:</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required />
+            </div>
+            <div class="form-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required />
+            </div>
+            <button type="submit">登录</button>
+            <p id="error-message" style="color: red; display: none;"></p>
+        </form>
+        <p>没有账号？<a href="{{ url_for('register') }}">注册</a></p>
+    </div>
+
+    <script>
+        function loginUser() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({username, password})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 如果响应状态码不是 2xx，抛出错误
+                    return response.json().then(data => {
+                        throw new Error(data.error || "登录失败，请稍后再试。");
+                    });
+                }
+                // 如果响应状态码是 2xx，解析 JSON 响应
+                return response.json();
+            })
+            .then(data => {
+                alert("登录成功！");
+                window.location.href = "{{ url_for('user_page') }}";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError(error.message);
+            });
+        }
+
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.innerText = message;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

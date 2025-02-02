@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NKDEX</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>NKDEX</h1>
+        <h2>短语查询</h2>
+        <!-- 新增的按钮组 -->
+        <div class="button-group">
+            <button onclick="location.href='{{ url_for('site_search') }}'">站内查询</button>
+            <button onclick="location.href='{{ url_for('file_search') }}'">文档查询</button>
+            <button onclick="location.href='{{ url_for('phrase_search') }}'">短语查询</button>
+            <button onclick="location.href='{{ url_for('wildcard_search') }}'">通配查询</button>
+            <button onclick="location.href='{{ url_for('user_page') }}'">用户主页</button>
+            <button onclick="location.href='{{ url_for('login') }}'">登录</button>
+        </div>
+        <form onsubmit="event.preventDefault(); search();">
+            <input type="search" id="query" placeholder="Enter your search term..." required />
+            <button type="submit">Search</button>
+        </form>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function search() {
+            var query = document.getElementById('query').value;
+            fetch('/phrasesearch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({query: query})
+            })
+            .then(response => response.json())
+            .then(data => {
+                var resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = ''; // Clear previous results
+                data.hits.forEach(hit => {
+                    var resultItem = document.createElement('div');
+                    resultItem.innerHTML = `
+                        <a href="${hit.url}" class="result-link" data-url="${hit.url}">${hit.title}</a>
+                        <p class="url">${hit.url}</p>
+                        <p>${hit.content.substring(0, 300)}...</p>
+                        ${hit.folder && hit.html_filename ? `<a href="/snapshot/${hit.folder}/${hit.html_filename}" target="_blank" class="snapshot-link">网页快照</a>` : ''}
+                    `;
+                    resultsDiv.appendChild(resultItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        // 监听点击行为
+        document.addEventListener('DOMContentLoaded', function() {
+            // 使用事件委托处理所有 .snapshot-link 元素的点击事件
+            document.body.addEventListener('click', function(event) {
+                if (event.target.classList.contains('result-link')) {
+                    console.log('Result link clicked:',  event.target.getAttribute('data-url'));  // 调试信息
+                    handleResultClick(event, event.target.getAttribute('data-url'));
+                }
+            });
+        });
+
+        function handleResultClick(event, url) {
+            event.preventDefault();
+            console.log('Handling result click for URL:', url);  // 调试信息
+            
+            fetch('/update_click', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({url: url})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Click recorded successfully');  // 调试信息
+                    window.location.href = url;
+                } else {
+                    console.error('Failed to update click:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating click:', error);
+            });
+        }
+    </script>
+
+</body>
+</html>
